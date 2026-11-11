@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "module": "invoice",
+  "version": "1.0.3",
+  "requires": {
+    "customer": ">=1.0.0",
+    "products": ">=1.0.0"
+  },
+  "database": {
+    "migrations": [
+      {
+        "id": "001_create_invoice",
+        "table": "invoice",
+        "file": "config/migrations/001_create_invoice.sql",
+        "adopt_existing": true,
+        "columns": {
+          "id": "int(11)",
+          "pid": "int(11)",
+          "ordning": "int(2)",
+          "companyid": "int(11)",
+          "deleted": "tinyint(1)",
+          "visible": "tinyint(1)",
+          "invoiceno": "int(11)",
+          "customer": "blob",
+          "invoicedate": "date",
+          "yourRef": "varchar(45)",
+          "termsOfPayment": "varchar(45)",
+          "ourRef": "varchar(45)",
+          "dueDate": "date",
+          "data": "blob",
+          "paied": "tinyint(1)",
+          "paied_date": "date",
+          "printed": "tinyint(1)",
+          "printed_date": "date",
+          "cancelled": "tinyint(1)",
+          "customer_id": "int(11)",
+          "sum": "varchar(45)",
+          "filename": "varchar(100)"
+        }
+      }
+    ],
+    "required_tables": {}
+  },
+  "ajax": [
+    {
+      "name": "invoice",
+      "script": "invoice/invoice_ajax.php",
+      "auth": 1
+    }
+  ],
+  "required_files": [
+    "system/libs/pdf.cls.php",
+    "resources/plugins/qr/qrcode.php"
+  ],
+  "uninstall": {
+    "preserve_data": true
+  }
+}

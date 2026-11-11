@@ -1,0 +1,26 @@
+CREATE TABLE {{table}} (
+  `id` int(11) NOT NULL auto_increment,
+  `pid` int(11) NULL default '0',
+  `ordning` int(2) NULL default '99',
+  `companyid` int(11) NULL default '0',
+  `deleted` tinyint(1) NULL default '0',
+  `visible` tinyint(1) NULL default '0',
+  `invoiceno` int(11) NULL default NULL,
+  `customer` blob NULL,
+  `invoicedate` date NULL default NULL,
+  `yourRef` varchar(45) NULL default NULL,
+  `termsOfPayment` varchar(45) NULL default NULL,
+  `ourRef` varchar(45) NULL default NULL,
+  `dueDate` date NULL default NULL,
+  `data` blob NULL,
+  `paied` tinyint(1) NULL default '0',
+  `paied_date` date NULL default NULL,
+  `printed` tinyint(1) NULL default '0',
+  `printed_date` date NULL default NULL,
+  `cancelled` tinyint(1) NULL default '0',
+  `customer_id` int(11) NULL default NULL,
+  `sum` varchar(45) NULL default NULL,
+  `filename` varchar(100) NULL default NULL,
+  PRIMARY KEY  (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+

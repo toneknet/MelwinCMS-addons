@@ -1,0 +1,26 @@
+{
+  "require": {
+    "mpdf": "8.2.7",
+    "qr": "1.0.0"
+  },
+  "packages": {
+    "qr": {
+      "name": "QRCode for PHP (Kazuhiko Arase)",
+      "source": "https://github.com/kazuhikoarase/qrcode-generator",
+      "releases": {
+        "1.0.0": {
+          "php": "7.4.0",
+          "extensions": ["gd"],
+          "require": {},
+          "base": "https://raw.githubusercontent.com/kazuhikoarase/qrcode-generator/95af9c2e1249337047ca478ccf98650a0a30af13/php/",
+          "autoload": {
+            "files": ["qrcode.php"]
+          },
+          "files": {
+            "qrcode.php": "839337a00e1ab8be1916ab20702d724aa41cdd7991dd7fc8187ffbc602998b4e"
+          }
+        }
+      }
+    }
+  }
+}

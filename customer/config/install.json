@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "module": "customer",
+  "version": "1.0.0",
+  "requires": {},
+  "database": {
+    "migrations": [
+      {
+        "id": "001_create_customer",
+        "table": "customer",
+        "file": "config/migrations/001_create_customer.sql",
+        "adopt_existing": true,
+        "columns": {
+          "id": "int(11)",
+          "namn": "varchar(100)",
+          "adress": "varchar(45)",
+          "postnr": "varchar(5)",
+          "postort": "varchar(45)",
+          "fastighet": "varchar(150)",
+          "telefon": "varchar(50)",
+          "kommentar": "text",
+          "ordning": "int(2)",
+          "deleted": "tinyint(1)",
+          "companyid": "int(11)",
+          "visible": "tinyint(1)",
+          "fakt_adress": "varchar(45)",
+          "fakt_postnr": "varchar(5)",
+          "fakt_postort": "varchar(45)",
+          "email": "varchar(250)"
+        }
+      }
+    ],
+    "required_tables": {}
+  },
+  "ajax": [],
+  "required_files": [],
+  "uninstall": {
+    "preserve_data": true
+  }
+}

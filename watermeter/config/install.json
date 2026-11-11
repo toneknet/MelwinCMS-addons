@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "module": "watermeter",
+  "version": "1.0.0",
+  "requires": {
+    "invoice": ">=1.0.0"
+  },
+  "database": {
+    "migrations": [
+      {
+        "id": "001_create_estate",
+        "table": "estate",
+        "file": "config/migrations/001_create_estate.sql",
+        "adopt_existing": true,
+        "columns": {
+          "id": "int(11)",
+          "pid": "int(11)",
+          "adress": "varchar(250)",
+          "meter": "varchar(45)",
+          "propertyname": "varchar(250)"
+        }
+      },
+      {
+        "id": "001_create_watermeter",
+        "table": "watermeter",
+        "file": "config/migrations/001_create_watermeter.sql",
+        "adopt_existing": true,
+        "columns": {
+          "id": "int(11)",
+          "pid": "int(11)",
+          "datum": "datetime",
+          "reading": "varchar(20)"
+        }
+      }
+    ],
+    "required_tables": {}
+  },
+  "ajax": [],
+  "required_files": [],
+  "uninstall": {
+    "preserve_data": true
+  }
+}
