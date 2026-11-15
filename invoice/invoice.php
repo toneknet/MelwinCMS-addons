@@ -2,8 +2,10 @@
 require_once __DIR__ . "/view.php";
 require_once __DIR__ . "/editor.php";
 require_once __DIR__ . '/water_usage.php';
+require_once __DIR__ . '/batch_pdf.php';
+require_once __DIR__ . '/company_settings.php';
 /*
-Name: Fakturering
+Name: Invoicing
 Version: 1.0.2
 Type: Module
 Requires: customer,products
@@ -70,13 +72,15 @@ class invoice
     private $doNotSave = false; // Används när jag INTE vill spara i databasen.
     // Fungerar på ALLA anrop i classen. Sätts till TRUE för att inte spara
     private $SU = false; // SUPERUSER
+    private $batchPdf = null;
 
     function __construct($dispatch = true)
     {
-        if (!$dispatch) return;
+        if ($dispatch === false) return;
 
         addCSS('system/modules/invoice/html/invoice.css');
         addJS('system/modules/invoice/html/invoice.js');
+        invoice_editor::languageScript();
         $input = new input();
         $this->loadSettings();
         $this->SU = (getUserID() == 1) ?? false;
@@ -91,9 +95,15 @@ class invoice
 
         print "<div class=\"buttonbar\">\n";
         print "<a href=\"?action=add\" class=\"button icon-add\">" . $GLOBALS['LANG']['MODULE']['invoice']['addInvoice'] . "</a>\n";
+        $canEditCompany = (is_array($dispatch) && !empty($dispatch['own_access']['edit'])) || isSuperUser();
+        if ($canEditCompany) print ('<a href="?action=company_settings" class="button">' . $GLOBALS['LANG']['MODULE']['invoice']['ui']['company_settings'] . '</a>');
 
 
         print "</div>\n";
+        if ($input->get('action') === 'company_settings' || (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['invoice_company_settings']))) {
+            invoice_company_settings::render(db::getInstance(), (int)getCompanyID(), $canEditCompany);
+            return;
+        }
         // debug();
         // Spara här
         if (is_array($input->post('db_invoice')) && $input->get('action') == 'save') {
@@ -163,7 +173,7 @@ class invoice
                 foreach ($arrUnpaidInvoices as $value) {
                     $totalUnpaidSum = $totalUnpaidSum + $value['sum'];
                 }
-                if (count($totPossibleToEmail) > 0 && $this->SU) print "<a href=\"?action=sendAll\" class=\"button icon-email\">Det finns fakturor som kan skickas via epost. Klicka här för att skicka samtliga!</a>";
+                if (count($totPossibleToEmail) > 0 && $this->SU) print ('<a href="?action=sendAll" class="button icon-email">' . $GLOBALS['LANG']['MODULE']['invoice']['ui']['invoices_are_available_to_send_by_email_click_here_to_send_them_all'] . '</a>');
                 print "<h4>" .  sprintf($GLOBALS['LANG']['MODULE']['invoice']['unpaid'], fix_number($totalUnpaidSum)) . "</h4>";
                 $dblist->setData($arrUnpaidInvoices);
                 $dblist->MakeWithSettings($this->dbFormSettings);
@@ -235,7 +245,7 @@ class invoice
                     <input type="date" name="start_date" id="start_date" value="<?=$start_date;?>" max="2100-12-31" data-type="date" class="datepicker searchbar_date">
                     <div class="px-1">–</div>
                     <input type="date" name="end_date" id="end_date" value="<?=$end_date;?>" max="2100-12-31" data-type="date" class="datepicker searchbar_date">
-                    <input type="search" name="search" id="search" value="" data-controller="autofocus" placeholder="Sök" class="search searchbar_search" autocomplete="off" data-initialized="1">
+                    <input type="search" name="search" id="search" value="" data-controller="autofocus" placeholder="<?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['search'];?>" class="search searchbar_search" autocomplete="off" data-initialized="1">
                 <!-- </form> -->
             </div>
 
@@ -395,13 +405,14 @@ class invoice
     /**
      * Save the invoice
      */
-    public static function createWaterInvoices(array $post): void
+    public static function createWaterInvoices(array $post): ?string
     {
         $post['watermeter_year'] = (int)date('Y');
         $instance = new self(false);
         invoice_editor::numbered(db::getInstance(), (int)getCompanyID(), function () use ($instance, $post) {
             $instance->saveInvoice($post);
         });
+        return $instance->batchPdf;
     }
 
     private function saveInvoice($post = null)
@@ -435,7 +446,9 @@ class invoice
 
 
         $arrCompany = $db->o_get_row('company', 'SELECT * FROM [table] WHERE deleted=0 AND id=' . getCompanyID() . ' ORDER BY id DESC');
-        if (!$arrCompany) throw new RuntimeException('Företagsuppgifter saknas. Ingen faktura skapades.');
+        if (!$arrCompany) throw new RuntimeException(($GLOBALS['LANG']['MODULE']['invoice']['ui']['company_details_are_missing_no_invoice_was_created']));
+        $arrCompany = invoice_company_settings::hydrate($arrCompany);
+        invoice_company_settings::invoiceFilename((string)($arrCompany['orgnr'] ?? ''), 1);
 
         //        print "<pre>";
         //        print_r($arrCompany);
@@ -484,9 +497,9 @@ class invoice
         // Hämta kund/er
         $arrAllCustomer = $db->o_get_all('customer', 'SELECT * FROM [table] WHERE deleted=0 AND companyid=' . getCompanyID() . $strWhere);
         // pre($arrAllCustomer);
-        if (count($arrAllCustomer) === 0) throw new Exception('Ingen vald kund hittades i det aktuella f?retaget.');
+        if (count($arrAllCustomer) === 0) throw new Exception(($GLOBALS['LANG']['MODULE']['invoice']['ui']['no_selected_customer_was_found_in_the_current_company']));
         if (isset($arrPost['db_select_all_user']) && count($arrAllCustomer) !== count($arrPost['db_select_all_user'])) {
-            throw new RuntimeException('Alla valda kunder måste finnas i det aktuella företaget.');
+            throw new RuntimeException(($GLOBALS['LANG']['MODULE']['invoice']['ui']['all_selected_customers_must_belong_to_the_current_company']));
         }
         $waterQuantities = [];
         $waterYear = isset($arrPost['watermeter_year']) ? (int)$arrPost['watermeter_year'] : (int)date('Y');
@@ -494,23 +507,24 @@ class invoice
         foreach ($arrPost['db_invoice'] as $row) {
             if ($row['product_connected'] === 'watermeter' && $row['product_amount'] === 'x') $hasWater = true;
         }
-        if (isset($arrPost['watermeter_year']) && !$hasWater) throw new RuntimeException('Behåll vattenraden med automatiskt antal x.');
+        if (isset($arrPost['watermeter_year']) && !$hasWater) throw new RuntimeException(($GLOBALS['LANG']['MODULE']['invoice']['ui']['keep_the_water_line_with_automatic_quantity_x']));
         if ($hasWater) {
             $customerIds = array_map(function ($customer) { return (int)$customer['id']; }, array_values($arrAllCustomer));
             $estates = $db->o_get_all('estate', 'SELECT id,pid,adress FROM [table] WHERE pid IN (' . implode(',', $customerIds) . ')');
-            $readings = $db->o_get_all('watermeter', "SELECT pid,datum,reading FROM [table] WHERE datum>='" . ($waterYear - 1) . "-01-01' AND datum<'" . ($waterYear + 1) . "-01-01'");
-            if (!is_array($estates) || !is_array($readings)) throw new RuntimeException('Kunde inte läsa vattenunderlaget.');
+            $readings = $db->o_get_all('watermeter', "SELECT id,pid,datum,reading FROM [table] WHERE datum>='" . ($waterYear - 1) . "-01-01' AND datum<'" . ($waterYear + 1) . "-01-01'");
+            if (!is_array($estates) || !is_array($readings)) throw new RuntimeException(($GLOBALS['LANG']['MODULE']['invoice']['ui']['could_not_read_the_water_billing_data']));
             $waterQuantities = invoice_water_usage::quantities($estates, $readings, $customerIds, $waterYear);
-            $previous = $db->o_get_all('invoice', 'SELECT customer_id,data FROM [table] WHERE companyid=' . (int)getCompanyID());
-            if (!is_array($previous)) throw new RuntimeException('Kunde inte kontrollera tidigare vattenfakturor.');
+            $previous = $db->o_get_all('invoice', 'SELECT id,customer_id,data FROM [table] WHERE companyid=' . (int)getCompanyID());
+            if (!is_array($previous)) throw new RuntimeException(($GLOBALS['LANG']['MODULE']['invoice']['ui']['could_not_check_previous_water_invoices']));
             foreach ($previous as $issued) {
                 $data = unserialize($issued['data'], ['allowed_classes' => false]);
                 if ((int)($data['watermeter_year'] ?? 0) === $waterYear && in_array((int)$issued['customer_id'], $customerIds, true)) {
-                    throw new RuntimeException('Kund ' . $issued['customer_id'] . ' har redan en vattenfaktura för ' . $waterYear . '. Ingen ny omgång skapades.');
+                    throw new RuntimeException(($GLOBALS['LANG']['MODULE']['invoice']['ui']['customer_1d8e4']) . $issued['customer_id'] . ($GLOBALS['LANG']['MODULE']['invoice']['ui']['already_has_a_water_invoice_for']) . $waterYear . ($GLOBALS['LANG']['MODULE']['invoice']['ui']['no_new_batch_was_created']));
                 }
             }
         }
         $arrAllInvoices = [];
+        $invoicePdfFiles = [];
         if (count($arrAllCustomer) > 0) {
             foreach ($arrAllCustomer as $key => $arrCustomer) {
                 $customer_id = (int)$arrCustomer['id'];
@@ -569,7 +583,7 @@ class invoice
                     if ($inv_value['product_amount'] === 'x' && $inv_value['product_connected'] === 'watermeter') {
                         $inv_value['product_amount'] = $waterQuantities[$customer_id];
                     }
-                    if (!is_numeric($inv_value['product_amount'])) throw new Exception('Vattenförbrukningen kunde inte beräknas för kunden. Kontrollera mätvärdena innan fakturering.');
+                    if (!is_numeric($inv_value['product_amount'])) throw new Exception(($GLOBALS['LANG']['MODULE']['invoice']['ui']['water_consumption_could_not_be_calculated_for_the_customer_check_met']));
                     $arrInvoice['rows'][$inv_key] = $inv_value;
                     $arrInvoice['rows'][$inv_key]['product_total'] =  floatval($arrInvoice['rows'][$inv_key]['product_amount']) * floatval($arrInvoice['rows'][$inv_key]['product_price']);
                     // Beräkna momsen på denna rad
@@ -603,7 +617,7 @@ class invoice
 
                 $arrInvoice['total']['sum'] = $dblTotal;
                 // Vad heter filen??
-                $strFilename = $arrCompany['orgnr'] . "-" . str_pad($intInvoiceID, 10, "0", STR_PAD_LEFT);
+                $strFilename = invoice_company_settings::invoiceFilename((string)$arrCompany['orgnr'], $intInvoiceID);
                 $arr2DB = array(
                     'invoiceno'         => $intInvoiceID,
                     'customer_id'       => $arrCustomer['id'],
@@ -622,7 +636,7 @@ class invoice
 
                 // Spara fakturan i DB
                 if (!$this->doNotSave) {
-                    if (!$db->o_insert('invoice', $arr2DB)) throw new Exception('Fakturan kunde inte sparas. Ingen PDF har skapats.');
+                    if (!$db->o_insert('invoice', $arr2DB)) throw new Exception(($GLOBALS['LANG']['MODULE']['invoice']['ui']['the_invoice_could_not_be_saved_no_pdf_has_been_created']));
                     setMsg('s', sprintf($GLOBALS['LANG']['MODULE']['invoice']['invoice_made'], $intInvoiceID, $GLOBALS['CONFIG']['www-root'], $strFilename));
                 }
 
@@ -632,45 +646,22 @@ class invoice
 
                 // Skapa fakturan som PDF
                 include(__DIR__ . '/invoice_template.php');
+                $invoicePdfFiles[] = ROOTPATH . 'pdf/' . $arr2DB['filename'];
                 // if(isSuperUser()) print $html;
             }
-            // Fler än en faktura gjordes
-            if (count($arrAllInvoices) > 1) {
-                //                print "<pre>";
-                //                print_r($arrAllInvoices);
-                //                print "</pre>";
+            if (count($invoicePdfFiles) > 1 || (isset($arrPost['watermeter_year']) && $invoicePdfFiles)) {
                 require_once ROOTPATH . 'system/libs/pdf.cls.php';
-                $mpdf = new pdf();
-                $mpdf->SetDisplayMode('fullpage');
-                $x = 0;
-                $header = "
-<html>
-<head>
-<style>
-@page {
-  size: auto;
-  margin:5px;
-  margin-header: 15mm;
-  margin-footer: 10mm;
-}
-</style>
-</head>
-<body>
-";
-                $footer = "</body></html>";
-                $mpdf->WriteHTML($header);
-                foreach ($arrAllInvoices as $xkey => $xhtml) {
-                    if ($x > 0) {
-                        $mpdf->AddPage('c', 'A4', '', '', 32, 25, 27, 25, 16, 13);
-                    }
-                    $mpdf->WriteHTML($xhtml);
-                    $x++;
+                $strFilename = invoice_company_settings::batchFilename((string)$arrCompany['namn'], date('Y_m_d_H_i_s'));
+                $baseFilename = $strFilename;
+                $suffix = 2;
+                while (is_file(ROOTPATH . 'pdf/' . $strFilename . '.pdf')) $strFilename = $baseFilename . '-' . $suffix++;
+                $destination = ROOTPATH . 'pdf/' . $strFilename . '.pdf';
+                try {
+                    invoice_batch_pdf::merge(new pdf(), $invoicePdfFiles, $destination);
+                } catch (Throwable $error) {
+                    throw new RuntimeException(($GLOBALS['LANG']['MODULE']['invoice']['ui']['the_individual_invoices_have_been_created_but_the_combined_document_']), 0, $error);
                 }
-                $mpdf->WriteHTML($footer);
-                $strFilename = getCompanyFileName() . "-samlingsfakturor-" . date("Y_m_d_H_i_s");
-                $filename = ROOTPATH . "pdf/" . $strFilename . ".pdf";
-                if (is_file($filename)) @unlink($filename);
-                $mpdf->Output($filename, "F"); //I
+                $this->batchPdf = $strFilename . '.pdf';
                 setMsg('s', sprintf($GLOBALS['LANG']['MODULE']['invoice']['invoice_made_multi'], $GLOBALS['CONFIG']['www-root'], $strFilename));
             }
         }
@@ -954,7 +945,7 @@ class invoice
         }
 
         // Fixa filnamnet
-        $strFilename = $arrInvoice['company']['orgnr'] . "-" . str_pad($intInvoiceID, 10, "0", STR_PAD_LEFT);
+        $strFilename = invoice_company_settings::invoiceFilename((string)$arrInvoice['company']['orgnr'], $intInvoiceID);
         // Märk den som betald
         if (!$this->doNotSave) {
             $db->o_update('invoice', array('paied' => 1, 'paied_date' => date("Y-m-d")), 'id=' . $id);
@@ -1006,13 +997,13 @@ class invoice
 
 
 
-        setMsg('e', "Denna funktion är inte implementerad ännu!");
+        setMsg('e', ($GLOBALS['LANG']['MODULE']['invoice']['ui']['this_feature_is_not_implemented_yet']));
         // print "SUCCESS!";
     }
 
     private function sendAllInvoices()
     {
-        setMsg('e', "Denna funktion är inte implementerad ännu!");
+        setMsg('e', ($GLOBALS['LANG']['MODULE']['invoice']['ui']['this_feature_is_not_implemented_yet']));
     }
 }
 

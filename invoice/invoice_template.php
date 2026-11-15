@@ -52,13 +52,13 @@ $footer_width=floor(100/$footer_columns)."%";
     <td colspan="4" align="left" valign="top" >
         <table  width="100%" border="0" style="font:verdana; font-size:12px;">
             <tr>
-                <td align="left" valign="top" ><b>Fakturanr</b></td>
+                <td align="left" valign="top" ><b><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['invoice_no'];?></b></td>
                 <td align="left" valign="top" ><?=$arrInvoice['invoice']['invoiceno'];?></td>
-                <td align="left" valign="top" ><b>Er referens</b></td>
-                <td width="35%" align="left" valign="top" <?=$style_box_text_header;?>><b>Faktureringsadress</b></td>
+                <td align="left" valign="top" ><b><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['your_reference'];?></b></td>
+                <td width="35%" align="left" valign="top" <?=$style_box_text_header;?>><b><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['billing_address'];?></b></td>
             </tr>
             <tr>
-                <td align="left" valign="top" ><b>Kundnr</b></td>
+                <td align="left" valign="top" ><b><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['customer_no'];?></b></td>
                 <td align="left" valign="top" ><?=$arrInvoice['customer']['id'];?></td>
                 <td align="left" valign="top" ><?=$arrInvoice['invoice']['yourRef'];?></td>
                 <td rowspan="5" align="left" valign="top" style="font-family: 'Abel',sans-serif; font-size:14px;" >
@@ -68,21 +68,21 @@ $footer_width=floor(100/$footer_columns)."%";
                 </td>
             </tr>
             <tr>
-                <td align="left" valign="top" ><b>Fakturadatum</b></td>
+                <td align="left" valign="top" ><b><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['invoice_date'];?></b></td>
                 <td align="left" valign="top" ><?=$arrInvoice['invoice']['invoicedate'];?></td>
-                <td align="left" valign="top" ><b>Vår referens</b></td>
+                <td align="left" valign="top" ><b><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['our_reference'];?></b></td>
             </tr>
             <tr>
-                <td align="left" valign="top" ><b>Betalningsvillkor</b></td>
-                <td align="left" valign="top" ><?=$arrInvoice['invoice']['termsOfPayment'];?> dagar netto</td>
+                <td align="left" valign="top" ><b><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['payment_terms'];?></b></td>
+                <td align="left" valign="top" ><?=$arrInvoice['invoice']['termsOfPayment'];?> <?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['days_net'];?></td>
                 <td align="left" valign="top" ><?=$arrInvoice['invoice']['ourRef'];?></td>
             </tr>
             <tr>
-                <td align="left" valign="top" ><b>Förfallodatum</b></td>
+                <td align="left" valign="top" ><b><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['due_date'];?></b></td>
                 <td colspan="2" align="left" valign="top" ><?=$arrInvoice['invoice']['dueDate'];?></td>
             </tr>
             <tr>
-                <td colspan="3" align="left" valign="top" >Efter förfallodagen debiteras ränta enligt räntelagen</td>
+                <td colspan="3" align="left" valign="top" ><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['after_the_due_date_interest_is_charged_in_accordance_with_applicable'];?></td>
             </tr>
         </table>
     </td>
@@ -92,10 +92,10 @@ $footer_width=floor(100/$footer_columns)."%";
         <table width="100%" border="0" cellspacing="0" cellpadding="0" style="font:Verdana; font-size:14px;">
             <thead>
                 <tr <?=$style_box_text;?>>
-                    <th align="left" <?=$style_speccy_header;?>>Produkt/Tjänst</th>
-                    <th width="20%" align="right" <?=$style_speccy_header;?>>Antal</th>
-                    <th width="20%" align="right"  <?=$style_speccy_header;?>>À-pris</th>
-                    <th width="20%" align="right"  <?=$style_speccy_header;?>>Belopp</th>
+                    <th align="left" <?=$style_speccy_header;?>><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['product_service_168bd'];?></th>
+                    <th width="20%" align="right" <?=$style_speccy_header;?>><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['quantity'];?></th>
+                    <th width="20%" align="right"  <?=$style_speccy_header;?>><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['unit_price'];?></th>
+                    <th width="20%" align="right"  <?=$style_speccy_header;?>><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['amount'];?></th>
                 </tr>
             </thead>
             <tbody>
@@ -125,8 +125,8 @@ foreach (getTaxRates() as $key => $value) {
     ?>
                 <tr>
                     <td>&nbsp;</td>
-                    <td align="right" valign="top"><b>Moms <?=$value;?> (beräknad på <?=fix_number($arrInvoice['total']['of'.$key]);?> kr)</b></td>
-                    <td align="right" valign="top"><?=fix_number($arrInvoice['total']['tax'.$key]);?> kr</td>
+                    <td align="right" valign="top"><b><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['vat'];?> <?=$value;?><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['calculated_on'];?><?=fix_number($arrInvoice['total']['of'.$key]);?><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['currency_suffix'];?>)</b></td>
+                    <td align="right" valign="top"><?=fix_number($arrInvoice['total']['tax'.$key]);?><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['currency_suffix'];?></td>
                 </tr>
 <?php
     }
@@ -134,13 +134,13 @@ foreach (getTaxRates() as $key => $value) {
 ?>
                 <tr>
                     <td>&nbsp;</td>
-                    <td align="right" valign="top"><b>Öresutjämning</b></td>
-                    <td align="right" valign="top"><?=fix_number($arrInvoice['total']['fix']);?> kr</td>
+                    <td align="right" valign="top"><b><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['rounding'];?></b></td>
+                    <td align="right" valign="top"><?=fix_number($arrInvoice['total']['fix']);?><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['currency_suffix'];?></td>
                 </tr>
 
                 <tr>
                     <td>&nbsp;</td>
-                    <td align="right" valign="top" colspan="2" style="font:Verdana; font-size:18px;"><b>Summa att betala:</b>&nbsp;<?=fix_number($arrInvoice['total']['sum']);?> kr</td>
+                    <td align="right" valign="top" colspan="2" style="font:Verdana; font-size:18px;"><b><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['amount_due'];?></b>&nbsp;<?=fix_number($arrInvoice['total']['sum']);?><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['currency_suffix'];?></td>
                 </tr>
 
             </tbody>
@@ -151,11 +151,11 @@ foreach (getTaxRates() as $key => $value) {
 	<td colspan="4">
         <table width="760px" border="0" cellspacing="2" cellpadding="2" align="center" style="font:Arial; font-size:14px;"  autosize="1">
             <tr>
-                <td<?php print $style_small;?> width="<?php print $footer_width;?>"><b><em>Adress</em></b></td>
-                <td<?php print $style_small;?> width="<?php print $footer_width;?>"><b><em>Telefon</em></b></td>
-                <td<?php print $style_small;?> width="<?php print $footer_width;?>"><b><em>Postgiro</em></b></td>
+                <td<?php print $style_small;?> width="<?php print $footer_width;?>"><b><em><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['address'];?></em></b></td>
+                <td<?php print $style_small;?> width="<?php print $footer_width;?>"><b><em><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['phone'];?></em></b></td>
+                <td<?php print $style_small;?> width="<?php print $footer_width;?>"><b><em><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['postal_giro'];?></em></b></td>
 <?php if ($footer_columns>3) {?>
-                <td<?php print $style_small;?> width="<?php print $footer_width;?>"><b><em>Internet</em></b></td>
+                <td<?php print $style_small;?> width="<?php print $footer_width;?>"><b><em><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['website'];?></em></b></td>
 <?php } ?>
             </tr>
             <tr>
@@ -168,10 +168,10 @@ foreach (getTaxRates() as $key => $value) {
             </tr>
             <tr>
                 <td<?php print $style_small;?> width="<?php print $footer_width;?>"><?=$arrInvoice['company']['co'];?></td>
-                <td<?php print $style_small;?> width="<?php print $footer_width;?>"><b><em>Företagets säte</em></b></td>
-                <td<?php print $style_small;?> width="<?php print $footer_width;?>"><b><em>Bankgiro</em></b></td>
+                <td<?php print $style_small;?> width="<?php print $footer_width;?>"><b><em><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['registered_office'];?></em></b></td>
+                <td<?php print $style_small;?> width="<?php print $footer_width;?>"><b><em><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['bank_giro'];?></em></b></td>
 <?php if ($footer_columns>3) {?>
-                <td<?php print $style_small;?> width="<?php print $footer_width;?>"><b><em>E-post</em></b></td>
+                <td<?php print $style_small;?> width="<?php print $footer_width;?>"><b><em><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['email'];?></em></b></td>
 <?php } ?>
             </tr>
             <tr>
@@ -184,8 +184,8 @@ foreach (getTaxRates() as $key => $value) {
             </tr>
             <tr>
                 <td<?php print $style_small;?> width="<?php print $footer_width;?>"><?=$arrInvoice['company']['postnr'];?>&nbsp;<?=$arrInvoice['company']['postort'];?></td>
-                <td<?php print $style_small;?> width="<?php print $footer_width;?>"><b><em>Organisationsnr</em></b></td>
-                <td<?php print $style_small;?> width="<?php print $footer_width;?>"><b><em>Bank</em></b></td>
+                <td<?php print $style_small;?> width="<?php print $footer_width;?>"><b><em><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['organisation_no'];?></em></b></td>
+                <td<?php print $style_small;?> width="<?php print $footer_width;?>"><b><em><?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['bank'];?></em></b></td>
 <?php if ($footer_columns>3) {?>
                 <td<?php print $style_small;?> width="<?php print $footer_width;?>"><b><em>&nbsp;</em></b></td>
 <?php } ?>
@@ -202,7 +202,7 @@ foreach (getTaxRates() as $key => $value) {
     </td>
 </tr>-->
 <!--<tr>
-	<td colspan="4" align="center" valign="baseline" <?php print $style_small2;?>> <b>www.friafakturan.se</b> - En gratisalternativ för dig som vill fakturera enkelt</td>
+	<td colspan="4" align="center" valign="baseline" <?php print $style_small2;?>> <b>www.friafakturan.se</b> - <?=$GLOBALS['LANG']['MODULE']['invoice']['ui']['a_free_service_for_easy_invoicing'];?></td>
 </tr>-->
 </table>
 
@@ -234,8 +234,10 @@ foreach (getTaxRates() as $key => $value) {
   if ($arrInvoice['total']['tax'.$key]>0) {
         $taxes.= "<tr>\n";
         //$taxes.= "<td>&nbsp;</td>\n";
-        $taxes.= "<td align=\"right\" valign=\"top\"><b>Moms " . $value . " (beräknad på " . fix_number($arrInvoice['total']['of'.$key]) . " kr)</b></td>\n";
-        $taxes.= "<td align=\"right\" valign=\"top\">" . fix_number($arrInvoice['total']['tax'.$key]) . " kr</td>\n";
+        $taxes.= ('<td align="right" valign="top"><b>' . $GLOBALS['LANG']['MODULE']['invoice']['ui']['vat'] . ' ') . $value . ($GLOBALS['LANG']['MODULE']['invoice']['ui']['calculated_on']) . fix_number($arrInvoice['total']['of'.$key]) . ($GLOBALS['LANG']['MODULE']['invoice']['ui']['currency_suffix'] . ')</b></td>
+');
+        $taxes.= "<td align=\"right\" valign=\"top\">" . fix_number($arrInvoice['total']['tax'.$key]) . ($GLOBALS['LANG']['MODULE']['invoice']['ui']['currency_suffix'] . '</td>
+');
         $taxes.= "</tr>\n";
   }
 }
@@ -289,8 +291,6 @@ $data = base64_encode($img);
 // Display the output
 echo $data;
 var_dump($img);
-?nme=Blackstad%20Vatten%20Ekonomiska%20F\u00f6rening&cid=769631-3142&iref=8&idt=20230402&ddt=20230502&due=0.00&pt=BG&acc=396-7510
-
 
 <table width="100%" border="0" cellspacing="0" cellpadding="0" style="font:Verdana; font-size:14px;">
     <tbody>
@@ -343,22 +343,22 @@ $mpdf->SetHTMLFooter('
 							"&pt=" . "BG" .
 							"&acc=" . $arrInvoice['company']['bg'] .
 							"\">
-							" . '</td>
-							<td>Betala gärna med qr-koden.<br /> Bara att skanna i din bankapp.</td>
+							" . ('</td>
+							<td>' . $GLOBALS['LANG']['MODULE']['invoice']['ui']['pay_using_the_qr_code'] . '<br /> ' . $GLOBALS['LANG']['MODULE']['invoice']['ui']['scan_it_in_your_banking_app'] . '</td>
 						</tr>
 		</table>
 		</td>
 		<td>
 		<table width="100%" border="0" cellspacing="0" cellpadding="0" style="font:Verdana; font-size:14px;">
 		    <tbody>
-				' . $taxes . '
+				') . $taxes . ('
 		        <tr>
-		            <td align="right" valign="top"><b>Öresutjämning</b></td>
-		            <td align="right" valign="top" width="45%">' . fix_number($arrInvoice['total']['fix']) . ' kr</td>
+		            <td align="right" valign="top"><b>' . $GLOBALS['LANG']['MODULE']['invoice']['ui']['rounding'] . '</b></td>
+		            <td align="right" valign="top" width="45%">') . fix_number($arrInvoice['total']['fix']) . ($GLOBALS['LANG']['MODULE']['invoice']['ui']['currency_suffix'] . '</td>
 		        </tr>
 		        <tr>
-		            <td align="right" valign="top" style="font:Verdana; font-size:18px;"><b>Summa att betala</b></td>
-		            <td align="right" valign="top" style="font:Verdana; font-size:18px;">' . fix_number($arrInvoice['total']['sum']) . ' kr</td>
+		            <td align="right" valign="top" style="font:Verdana; font-size:18px;"><b>' . $GLOBALS['LANG']['MODULE']['invoice']['ui']['amount_payable'] . '</b></td>
+		            <td align="right" valign="top" style="font:Verdana; font-size:18px;">') . fix_number($arrInvoice['total']['sum']) . ($GLOBALS['LANG']['MODULE']['invoice']['ui']['currency_suffix'] . '</td>
 		        </tr>
 		    </tbody>
 		</table>
@@ -367,34 +367,34 @@ $mpdf->SetHTMLFooter('
 </table>
 <table width="100%" border="0" cellspacing="2" cellpadding="2" align="center" style="font:Arial; font-size:14px;border-top:1px solid black;"  autosize="1">
     <tr>
-        <td' . $style_small . ' width="25%"><b><em>Adress</em></b></td>
-        <td' . $style_small . ' width="25%"><b><em>Telefon</em></b></td>
-        <td' . $style_small . ' width="25%"><b><em>Postgiro</em></b></td>
-        <td' . $style_small . ' width="25%"><b><em>Internet</em></b></td>
+        <td') . $style_small . (' width="25%"><b><em>' . $GLOBALS['LANG']['MODULE']['invoice']['ui']['address'] . '</em></b></td>
+        <td') . $style_small . (' width="25%"><b><em>' . $GLOBALS['LANG']['MODULE']['invoice']['ui']['phone'] . '</em></b></td>
+        <td') . $style_small . (' width="25%"><b><em>' . $GLOBALS['LANG']['MODULE']['invoice']['ui']['postal_giro'] . '</em></b></td>
+        <td') . $style_small . (' width="25%"><b><em>' . $GLOBALS['LANG']['MODULE']['invoice']['ui']['website'] . '</em></b></td>
     </tr>
     <tr>
-        <td' . $style_small . ' width="25%">' . $arrInvoice['company']['namn'] . '</td>
+        <td') . $style_small . ' width="25%">' . $arrInvoice['company']['namn'] . '</td>
         <td' . $style_small . ' width="25%">' . $arrInvoice['company']['phone'] . '</td>
         <td' . $style_small . ' width="25%">' . $arrInvoice['company']['pg'] . '</td>
         <td' . $style_small . ' width="25%">' . $arrInvoice['company']['www'] . '</td>
     </tr>
     <tr>
         <td' . $style_small . ' width="25%">' . $arrInvoice['company']['co'] . '</td>
-        <td' . $style_small . ' width="25%"><b><em>Företagets säte</em></b></td>
-        <td' . $style_small . ' width="25%"><b><em>Bankgiro</em></b></td>
-        <td' . $style_small . ' width="25%"><b><em>E-post</em></b></td>
+        <td' . $style_small . (' width="25%"><b><em>' . $GLOBALS['LANG']['MODULE']['invoice']['ui']['registered_office'] . '</em></b></td>
+        <td') . $style_small . (' width="25%"><b><em>' . $GLOBALS['LANG']['MODULE']['invoice']['ui']['bank_giro'] . '</em></b></td>
+        <td') . $style_small . (' width="25%"><b><em>' . $GLOBALS['LANG']['MODULE']['invoice']['ui']['email'] . '</em></b></td>
     </tr>
     <tr>
-        <td' . $style_small . ' width="25%">' . $arrInvoice['company']['adress'] . '</td>
+        <td') . $style_small . ' width="25%">' . $arrInvoice['company']['adress'] . '</td>
         <td' . $style_small . ' width="25%">' . $arrInvoice['company']['sate'] . '</td>
         <td' . $style_small . ' width="25%">' . $arrInvoice['company']['bg'] . '</td>
         <td' . $style_small . ' width="25%">' . $arrInvoice['company']['email'] . '</td>
     </tr>
     <tr>
         <td' . $style_small . ' width="25%">' . $arrInvoice['company']['postnr'] . '&nbsp;' . $arrInvoice['company']['postort'] . '</td>
-        <td' . $style_small . ' width="25%"><b><em>Organisationsnr</em></b></td>
-        <td' . $style_small . ' width="25%"><b><em>Bank</em></b></td>
-        <td' . $style_small . ' width="25%"><b><em>&nbsp;</em></b></td>
+        <td' . $style_small . (' width="25%"><b><em>' . $GLOBALS['LANG']['MODULE']['invoice']['ui']['organisation_no'] . '</em></b></td>
+        <td') . $style_small . (' width="25%"><b><em>' . $GLOBALS['LANG']['MODULE']['invoice']['ui']['bank'] . '</em></b></td>
+        <td') . $style_small . ' width="25%"><b><em>&nbsp;</em></b></td>
     </tr>
     <tr>
         <td' . $style_small . ' width="25%">&nbsp;</td>
@@ -403,10 +403,10 @@ $mpdf->SetHTMLFooter('
         <td' . $style_small . ' width="25%">&nbsp;</td>
     </tr>
 </table>
- <p ' . $style_small2 . '><b>www.friafakturan.se</b> - En gratisalternativ för dig som vill fakturera enkelt</p>
+ <p ' . $style_small2 . ('><b>www.friafakturan.se</b> - ' . $GLOBALS['LANG']['MODULE']['invoice']['ui']['a_free_service_for_easy_invoicing'] . '</p>
 
 
-');
+'));
 /*$header="
 <html>
 <head>

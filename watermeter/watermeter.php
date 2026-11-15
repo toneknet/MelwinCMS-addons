@@ -1,6 +1,6 @@
 <?php
 /*
-Name: Vattenmätare
+Name: Water meters
 Version: 1.0.0
 Type: Module
 Requires: invoice
@@ -39,9 +39,9 @@ class watermeter
 
   private function saveManualReading(): void {
     try {
-      if (!$this->allowImport) throw new RuntimeException('Du saknar behörighet att lägga till avläsningar.');
+      if (!$this->allowImport) throw new RuntimeException(($GLOBALS['LANG']['MODULE']['watermeter']['ui']['you_do_not_have_permission_to_add_meter_readings']));
       if (!hash_equals(salt('watermeter-manual-' . date('Y-m-d'), 30), (string)($_POST['watermeter_token'] ?? ''))) {
-        throw new RuntimeException('Formuläret har löpt ut. Ladda om sidan och försök igen.');
+        throw new RuntimeException(($GLOBALS['LANG']['MODULE']['watermeter']['ui']['the_form_has_expired_reload_the_page_and_try_again']));
       }
       $pid = filter_var($_POST['estate_id'] ?? '', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
       $year = filter_var($_POST['year'] ?? '', FILTER_VALIDATE_INT, ['options' => ['min_range' => (int)$this->start, 'max_range' => (int)date('Y')]]);
@@ -49,27 +49,27 @@ class watermeter
       $dateValue = (string)($_POST['datum'] ?? '');
       $date = DateTimeImmutable::createFromFormat('!Y-m-d', $dateValue);
       if (!$pid || !$year || !preg_match('/^\d{1,20}$/D', $reading) || !$date || $date->format('Y-m-d') !== $dateValue || (int)$date->format('Y') !== $year) {
-        throw new RuntimeException('Ange en giltig fastighet, ett datum inom valt år och en mätarställning som heltal (minst 0).');
+        throw new RuntimeException(($GLOBALS['LANG']['MODULE']['watermeter']['ui']['enter_a_valid_property_a_date_within_the_selected_year_and_a_whole_n']));
       }
       $db = db::getInstance();
       // Use the same lock as CSV imports to prevent simultaneous duplicate inserts.
       $lock = '0x' . bin2hex('watermeter:' . substr(hash('sha256', $db->o_prefix('watermeter')), 0, 40));
       $acquired = $db->o_get_row('', "SELECT GET_LOCK($lock,5) AS acquired");
-      if ((int)($acquired['acquired'] ?? 0) !== 1) throw new RuntimeException('En avläsning sparas redan. Försök igen om en stund.');
+      if ((int)($acquired['acquired'] ?? 0) !== 1) throw new RuntimeException(($GLOBALS['LANG']['MODULE']['watermeter']['ui']['a_meter_reading_is_already_being_saved_try_again_shortly']));
       try {
         $estate = $db->o_get_row('estate', 'SELECT id FROM [table] WHERE id=' . (int)$pid);
-        if (!$estate) throw new RuntimeException('Fastigheten finns inte.');
+        if (!$estate) throw new RuntimeException(($GLOBALS['LANG']['MODULE']['watermeter']['ui']['the_property_does_not_exist']));
         $existing = $db->o_get_all('watermeter', 'SELECT id FROM [table] WHERE pid=' . (int)$pid
           . " AND datum>='" . $year . "-01-01' AND datum<'" . ($year + 1) . "-01-01'");
-        if (!is_array($existing)) throw new RuntimeException('Kunde inte kontrollera befintliga avläsningar.');
-        if ($existing) throw new RuntimeException('Fastigheten har redan en avläsning för detta år. Inget skrevs över.');
+        if (!is_array($existing)) throw new RuntimeException(($GLOBALS['LANG']['MODULE']['watermeter']['ui']['could_not_check_existing_meter_readings']));
+        if ($existing) throw new RuntimeException(($GLOBALS['LANG']['MODULE']['watermeter']['ui']['the_property_already_has_a_reading_for_this_year_nothing_was_overwri']));
         if (!$db->o_insert('watermeter', ['pid' => (int)$pid, 'datum' => $dateValue . ' 00:00:00', 'reading' => ltrim($reading, '0') ?: '0'])) {
-          throw new RuntimeException('Mätarställningen kunde inte sparas.');
+          throw new RuntimeException(($GLOBALS['LANG']['MODULE']['watermeter']['ui']['the_meter_reading_could_not_be_saved']));
         }
       } finally {
         $db->o_get_row('', "SELECT RELEASE_LOCK($lock) AS released");
       }
-      print '<p role="status">Mätarställningen har sparats.</p>';
+      print ('<p role="status">' . $GLOBALS['LANG']['MODULE']['watermeter']['ui']['the_meter_reading_has_been_saved'] . '</p>');
     } catch (Throwable $error) {
       print '<p role="alert">' . self::esc($error->getMessage()) . '</p>';
     }
@@ -77,22 +77,22 @@ class watermeter
 
   private function importReadings(): void {
     try {
-      if (!$this->allowImport) throw new RuntimeException('Du saknar behörighet att importera avläsningar.');
+      if (!$this->allowImport) throw new RuntimeException(($GLOBALS['LANG']['MODULE']['watermeter']['ui']['you_do_not_have_permission_to_import_meter_readings']));
       if (!hash_equals(salt('watermeter-import-' . date('Y-m-d'), 30), (string)($_POST['watermeter_token'] ?? ''))) {
-        throw new RuntimeException('Formuläret har löpt ut. Ladda om sidan och försök igen.');
+        throw new RuntimeException(($GLOBALS['LANG']['MODULE']['watermeter']['ui']['the_form_has_expired_reload_the_page_and_try_again']));
       }
       $file = $_FILES['watermeter_csv'] ?? [];
       if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || !is_uploaded_file($file['tmp_name'] ?? '')) {
-        throw new RuntimeException('Välj en CSV-fil och kontrollera att uppladdningen lyckades.');
+        throw new RuntimeException(($GLOBALS['LANG']['MODULE']['watermeter']['ui']['choose_a_csv_file_and_check_that_the_upload_succeeded']));
       }
-      if (filesize($file['tmp_name']) > 5 * 1024 * 1024) throw new RuntimeException('CSV-filen får vara högst 5 MB.');
+      if (filesize($file['tmp_name']) > 5 * 1024 * 1024) throw new RuntimeException(($GLOBALS['LANG']['MODULE']['watermeter']['ui']['the_csv_file_must_not_exceed_5_mb']));
       require_once __DIR__ . '/import.php';
       $stream = fopen($file['tmp_name'], 'rb');
-      if (!$stream) throw new RuntimeException('Kunde inte öppna CSV-filen.');
+      if (!$stream) throw new RuntimeException(($GLOBALS['LANG']['MODULE']['watermeter']['ui']['could_not_open_the_csv_file']));
       try { $rows = watermeter_import::rows($stream); }
       finally { fclose($stream); }
       $result = watermeter_import::save(db::getInstance(), $rows);
-      print '<p role="status">Import klar: ' . $result['inserted'] . ' sparade, ' . $result['skipped'] . ' redan importerade, ' . count($result['errors']) . ' fel.</p>';
+      print ('<p role="status">' . $GLOBALS['LANG']['MODULE']['watermeter']['ui']['import_complete']) . $result['inserted'] . ($GLOBALS['LANG']['MODULE']['watermeter']['ui']['saved']) . $result['skipped'] . ($GLOBALS['LANG']['MODULE']['watermeter']['ui']['already_imported']) . count($result['errors']) . ($GLOBALS['LANG']['MODULE']['watermeter']['ui']['errors'] . '</p>');
       if ($result['errors']) {
         print '<ul>';
         foreach ($result['errors'] as $error) print '<li>' . self::esc($error) . '</li>';
@@ -105,34 +105,37 @@ class watermeter
 
   function create_invoices() {
     if (!$this->allowImport) {
-      print '<p role="alert">Du saknar behörighet att skapa fakturor.</p>';
+      print ('<p role="alert">' . $GLOBALS['LANG']['MODULE']['watermeter']['ui']['you_do_not_have_permission_to_create_invoices'] . '</p>');
       return;
     }
     require_once __DIR__ . '/../invoice/invoice.php';
-    require_once __DIR__ . '/../invoice/lang/sv.php';
     addCSS('system/modules/invoice/html/invoice.css');
     addJS('system/modules/invoice/html/invoice.js');
     $db = db::getInstance();
     $company = (int)getCompanyID();
     $year = (int)date('Y');
-    print '<h2>Vattenfakturor för ' . $year . '</h2><p>En faktura skapas per vald kund. Förbrukningen är skillnaden mellan ' . ($year - 1) . ' och ' . $year . ' års mätarställningar, summerad över kundens fastigheter. Alla extra rader, exempelvis årsavgift, läggs till en gång på varje faktura.</p>';
-    print '<p>Ange vattenpris och moms. Behåll vattenradens antal <strong>x</strong> för automatisk förbrukning. Lägg till gemensamma avgifter med <strong>Lägg till rad</strong>. Inga fakturor skapas förrän du trycker på <strong>Skapa faktura</strong>.</p>';
+    print ('<h2>' . $GLOBALS['LANG']['MODULE']['watermeter']['ui']['water_invoices_for']) . $year . ('</h2><p>' . $GLOBALS['LANG']['MODULE']['watermeter']['ui']['one_invoice_is_created_per_selected_customer_consumption_is_the_diff']) . ($year - 1) . ($GLOBALS['LANG']['MODULE']['watermeter']['ui']['and']) . $year . ($GLOBALS['LANG']['MODULE']['watermeter']['ui']['annual_meter_readings_totalled_across_the_customer_properties_all_ex'] . '</p>');
+    print ('<p>' . $GLOBALS['LANG']['MODULE']['watermeter']['ui']['enter_the_water_price_and_vat_keep_the_water_quantity_as_strong_x_st'] . '</p>');
     if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['watermeter_billing'])) {
       try {
-        invoice::createWaterInvoices($_POST);
-        print '<p role="status">Fakturorna har skapats och finns i fakturamodulen.</p><a href="?">Tillbaka till vattenmätarna</a>';
+        $batchPdf = invoice::createWaterInvoices($_POST);
+        if ($batchPdf !== null) {
+          $url = rtrim($GLOBALS['CONFIG']['www-root'], '/') . '/pdf/' . rawurlencode($batchPdf);
+          print '<p><a class="button" href="' . self::esc($url) . ('" target="_blank" rel="noopener">' . $GLOBALS['LANG']['MODULE']['watermeter']['ui']['open_all_invoices_in_one_pdf_for_printing'] . '</a></p>');
+        }
+        print ('<p role="status">' . $GLOBALS['LANG']['MODULE']['watermeter']['ui']['the_invoices_have_been_created_and_are_available_in_the_invoice_modu'] . '</p><a href="?">' . $GLOBALS['LANG']['MODULE']['watermeter']['ui']['back_to_water_meters'] . '</a>');
         return;
       } catch (Throwable $error) {
-        print '<p role="alert">' . self::esc($error->getMessage()) . ' Om några fakturor hann sparas före ett tekniskt fel finns de kvar i fakturamodulen.</p>';
+        print '<p role="alert">' . self::esc($error->getMessage()) . ($GLOBALS['LANG']['MODULE']['watermeter']['ui']['any_invoices_saved_before_a_technical_error_remain_in_the_invoice_mo'] . '</p>');
       }
     }
     $customers = $db->o_get_all_ai('customer', 'SELECT c.id,c.namn FROM [table] c WHERE c.deleted=0 AND c.companyid=' . $company
       . ' AND EXISTS (SELECT 1 FROM ' . $db->o_prefix('estate') . ' e WHERE e.pid=c.id) ORDER BY c.namn');
     if (!$customers) {
-      print '<p>Inga kunder med fastigheter finns i det aktuella företaget.</p>';
+      print ('<p>' . $GLOBALS['LANG']['MODULE']['watermeter']['ui']['no_customers_with_properties_were_found_in_the_current_company'] . '</p>');
       return;
     }
-    $rows = [['product_name' => 'Vattenförbrukning ' . ($year - 1) . '–' . $year, 'product_amount' => 'x',
+    $rows = [['product_name' => ($GLOBALS['LANG']['MODULE']['watermeter']['ui']['water_consumption']) . ($year - 1) . '–' . $year, 'product_amount' => 'x',
       'product_unit' => 'm³', 'product_price' => '6', 'product_tax' => '0', 'product_connected' => 'watermeter']];
     if (isset($_POST['db_invoice']) && is_array($_POST['db_invoice'])) $rows = array_values($_POST['db_invoice']);
     $options = ['water' => true, 'action' => '?action=create_invoices', 'customers' => $customers, 'rows' => $rows];
@@ -170,21 +173,21 @@ class watermeter
   function list() {
     if ($this->allowImport) {
       print '<form method="post" enctype="multipart/form-data">';
-      print '<h2>Importera mätarställningar</h2><p>Semikolonseparerad CSV (UTF-8 eller Windows-1252) med kolumnerna Adress;Mätarens serienummer;Datum;Mätarställning. Datum: ÅÅÅÅ-MM-DD. Decimalcomma eller decimalpunkt stöds; mätarställningen avrundas till närmaste heltal (0,5 uppåt). Matchning sker på fastighetens mätarserienummer. Befintliga värden skrivs aldrig över.</p>';
+      print ('<h2>' . $GLOBALS['LANG']['MODULE']['watermeter']['ui']['import_meter_readings'] . '</h2><p>' . $GLOBALS['LANG']['MODULE']['watermeter']['ui']['semicolon_separated_csv_utf_8_or_windows_1252_with_the_fixed_columns'] . '</p>');
       print '<input type="hidden" name="watermeter_import" value="1">';
       print '<input type="hidden" name="watermeter_token" value="' . self::esc(salt('watermeter-import-' . date('Y-m-d'), 30)) . '">';
-      print '<label>CSV-fil <input type="file" name="watermeter_csv" accept=".csv,text/csv" required></label> ';
-      print '<button type="submit">Importera avläsningar</button></form>';
+      print ('<label>' . $GLOBALS['LANG']['MODULE']['watermeter']['ui']['csv_file'] . ' <input type="file" name="watermeter_csv" accept=".csv,text/csv" required></label> ');
+      print ('<button type="submit">' . $GLOBALS['LANG']['MODULE']['watermeter']['ui']['import_readings'] . '</button></form>');
     }
     $watmet = $this->getData();
     print "<table>";
     print "<tr>";
-    print "<th>Fastighet</th>";
-    print "<th>Namn</th>";
+    print ('<th>' . $GLOBALS['LANG']['MODULE']['watermeter']['ui']['property'] . '</th>');
+    print ('<th>' . $GLOBALS['LANG']['MODULE']['watermeter']['ui']['name'] . '</th>');
     for ($i = $this->start; $i < ($this->start + $this->length); $i++) {
       print "<th>{$i}</th>";
       if ($i > $this->start) {
-        print "<th>S:a</th>";
+        print ('<th>' . $GLOBALS['LANG']['MODULE']['watermeter']['ui']['total'] . '</th>');
       }
     }
 
@@ -203,14 +206,14 @@ class watermeter
           print self::esc($v[$year]);
         } elseif ($this->allowImport) {
           $defaultDate = $year == date('Y') ? date('Y-m-d') : $year . '-12-31';
-          print '<details><summary aria-label="Lägg till mätarställning för ' . self::esc($k) . ' ' . $year . '">' . getIconFull('add') . '</summary>';
+          print ('<details><summary aria-label="' . $GLOBALS['LANG']['MODULE']['watermeter']['ui']['add_meter_reading_for']) . self::esc($k) . ' ' . $year . '">' . getIconFull('add') . '</summary>';
           print '<form method="post"><input type="hidden" name="watermeter_manual" value="1">';
           print '<input type="hidden" name="estate_id" value="' . (int)$v['estate_id'] . '">';
           print '<input type="hidden" name="year" value="' . $year . '">';
           print '<input type="hidden" name="watermeter_token" value="' . self::esc(salt('watermeter-manual-' . date('Y-m-d'), 30)) . '">';
-          print '<label>Datum <input type="date" name="datum" min="' . $year . '-01-01" max="' . $year . '-12-31" value="' . $defaultDate . '" required></label> ';
-          print '<label>Mätarställning <input type="number" name="reading" min="0" step="1" required></label> ';
-          print '<button type="submit">Spara</button></form></details>';
+          print ('<label>' . $GLOBALS['LANG']['MODULE']['watermeter']['ui']['date'] . ' <input type="date" name="datum" min="') . $year . '-01-01" max="' . $year . '-12-31" value="' . $defaultDate . '" required></label> ';
+          print ('<label>' . $GLOBALS['LANG']['MODULE']['watermeter']['ui']['meter_reading'] . ' <input type="number" name="reading" min="0" step="1" required></label> ');
+          print ('<button type="submit">' . $GLOBALS['LANG']['MODULE']['watermeter']['ui']['save'] . '</button></form></details>');
         } else {
           print '&mdash;';
         }
@@ -231,14 +234,14 @@ class watermeter
     }
     print "<tr>";
     print "<th></th>";
-    print "<th style='text-align:right;'>Total summor:</th>";
+    print ('<th style=\'text-align:right;\'>' . $GLOBALS['LANG']['MODULE']['watermeter']['ui']['totals'] . '</th>');
     for ($year = $this->start; $year < ($this->start + $this->length); $year++) {
 
       if ($year > $this->start) {
         $period = ($year - 1) . "-" . $year;
         $totThisYear = $totWat[$period] ?? 0;
         print "<td>";
-        print ($totThisYear * 6) . " kr";
+        print ($totThisYear * 6) . ($GLOBALS['LANG']['MODULE']['watermeter']['ui']['currency_suffix']);
         print "</td>";
         print "<th>";
         print $totThisYear;
@@ -252,7 +255,7 @@ class watermeter
 
     print "</table>";
 
-    if ($this->allowImport) print "<a href='?action=create_invoices' class='button'>Skapa fakturor för innevarande år</a>";
+    if ($this->allowImport) print ('<a href=\'?action=create_invoices\' class=\'button\'>' . $GLOBALS['LANG']['MODULE']['watermeter']['ui']['create_invoices_for_the_current_year'] . '</a>');
 
   }
 }

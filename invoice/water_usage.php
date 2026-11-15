@@ -18,17 +18,17 @@ class invoice_water_usage
             $values = $byEstate[(int)$estate['id']] ?? [];
             foreach ([$year - 1, $year] as $y) {
                 if (count($values[$y] ?? []) !== 1 || !is_numeric(str_replace(',', '.', (string)$values[$y][0]))) {
-                    throw new RuntimeException('Fastigheten ' . $estate['adress'] . ' behöver exakt en giltig avläsning för ' . $y . '.');
+                    throw new RuntimeException(($GLOBALS['LANG']['MODULE']['invoice']['ui']['the_property']) . $estate['adress'] . ($GLOBALS['LANG']['MODULE']['invoice']['ui']['needs_exactly_one_valid_meter_reading_for']) . $y . '.');
                 }
             }
             $usage = (int)round((float)str_replace(',', '.', $values[$year][0]))
                 - (int)round((float)str_replace(',', '.', $values[$year - 1][0]));
-            if ($usage < 0) throw new RuntimeException('Mätarställningen har minskat för ' . $estate['adress'] . '. Kontrollera avläsningarna.');
+            if ($usage < 0) throw new RuntimeException(($GLOBALS['LANG']['MODULE']['invoice']['ui']['the_meter_reading_has_decreased_for']) . $estate['adress'] . ($GLOBALS['LANG']['MODULE']['invoice']['ui']['check_the_readings']));
             $result[$customer] += $usage;
             $found[$customer] = true;
         }
         foreach ($customers as $customer) {
-            if (!isset($found[$customer])) throw new RuntimeException('Kund ' . $customer . ' saknar fastighet för vattenfakturering.');
+            if (!isset($found[$customer])) throw new RuntimeException(($GLOBALS['LANG']['MODULE']['invoice']['ui']['customer_1d8e4']) . $customer . ($GLOBALS['LANG']['MODULE']['invoice']['ui']['has_no_property_for_water_billing']));
         }
         return $result;
     }
